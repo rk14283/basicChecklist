@@ -1,0 +1,389 @@
+/* Modern Background and Base */
+body {
+  margin: 0;
+  min-height: 100vh;
+  /* Soft gradient background */
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  font-family: 'Inter', -apple-system, sans-serif;
+  color: #2d3436;
+  padding: 40px 20px;
+}
+
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+header h1 {
+  font-size: 2.5rem;
+  letter-spacing: -1px;
+  color: #1e272e;
+  margin: 0;
+}
+
+/* The Board */
+.board {
+  display: flex;
+  flex-direction: row;
+  gap: 25px;
+  align-items: flex-start;
+}
+
+.column {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px); /* Frosted glass effect */
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+  border: 1px solid rgba(255,255,255,0.3);
+  min-height: 500px;
+  transition: transform 0.2s ease;
+}
+
+.column:hover {
+  transform: translateY(-5px);
+}
+
+/* Category Specific Headers */
+.column-header {
+  font-size: 1.1rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid;
+}
+
+/* Color Palette */
+.cat-a { border-color: #6c5ce7; color: #6c5ce7; } /* Purple */
+.cat-b { border-color: #00b894; color: #00b894; } /* Green */
+.cat-misc { border-color: #636e72; color: #2d3436; } /* Steel */
+
+/* Tasks */
+ul {
+  list-style: none;
+  padding: 0;
+}
+
+li {
+  background: white;
+  padding: 12px 16px;
+  border-radius: 10px;
+  margin-bottom: 10px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+  border-left: 4px solid transparent;
+  font-size: 0.95rem;
+}
+
+/* Subtle accent on the task cards */
+.cat-a-item { border-left-color: #6c5ce7; }
+.cat-b-item { border-left-color: #00b894; }
+.cat-misc-item { border-left-color: #b2bec3; }
+
+/* Add Button */
+button {
+  width: 100%;
+  margin-top: 15px;
+  padding: 12px;
+  border: none;
+  border-radius: 10px;
+  background: #1e272e;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+button:hover {
+  opacity: 0.9;
+}
+
+ /* Floating Button Stack */
+ /* Archive button (top floating stack) */
+.archive-button {
+  background: #2d3436;
+  color: white;
+
+  padding: 10px 16px;
+  border-radius: 999px;
+
+  border: none;
+  cursor: pointer;
+
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+/* Archive popup */
+.archive-popup {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+
+  width: 450px;
+  max-width: 90%;
+
+  background: white;
+  border-radius: 16px;
+
+  padding: 20px;
+
+  box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+
+  z-index: 3000;
+}
+
+.archive-header {
+  display: flex;
+  justify-content: space-between;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+/* archived item styling */
+.archived-item {
+  padding: 10px;
+  border-radius: 10px;
+
+  margin-bottom: 10px;
+
+  background: #f5f6fa;
+  border-left: 4px solid #2d3436;
+}
+
+/* category color indicators */
+.archived-item.cat-a {
+  border-left-color: #6c5ce7;
+}
+
+.archived-item.cat-b {
+  border-left-color: #00b894;
+}
+
+.archived-item.cat-misc {
+  border-left-color: #636e72;
+}
+.floating-buttons {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  z-index: 1000;
+}
+
+/* Task popup */
+.task-popup {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+
+  width: 350px;
+  background: white;
+
+  padding: 20px;
+  border-radius: 16px;
+
+  box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+  z-index: 2000;
+}
+
+.task-header {
+  display: flex;
+  justify-content: space-between;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+.task-popup textarea {
+  width: 100%;
+  min-height: 100px;
+  padding: 10px;
+
+  border-radius: 10px;
+  border: 1px solid #ddd;
+  margin-bottom: 10px;
+}
+
+/* Save button */
+.save-btn {
+  width: 100%;
+  padding: 10px;
+
+  background: #6c5ce7;
+  color: white;
+
+  border: none;
+  border-radius: 10px;
+
+  cursor: pointer;
+}
+
+/* completed task */
+.done {
+  text-decoration: line-through;
+  opacity: 0.5;
+}
+
+/* Shared Floating Button Style */
+.meds-button,
+.food-button {
+  width: auto;
+  padding: 10px 16px;
+
+  border: none;
+  border-radius: 999px;
+
+  color: white;
+  font-size: 0.9rem;
+  font-weight: 700;
+
+  cursor: pointer;
+
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  transition: all 0.2s ease;
+}
+
+/* Meds = Green */
+.meds-button {
+  background: #00b894;
+}
+
+/* Food = Red */
+.food-button {
+  background: #e74c3c;
+}
+
+.meds-button:hover,
+.food-button:hover {
+  transform: scale(1.05);
+  opacity: 0.95;
+}
+
+/* Shared Popup Style */
+.meds-popup,
+.food-popup {
+  position: fixed;
+
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+
+  width: 400px;
+  max-width: 90%;
+
+  background: white;
+  border-radius: 16px;
+  padding: 20px;
+
+  box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+
+  z-index: 2000;
+}
+
+/* Popup Headers */
+.meds-header,
+.food-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  margin-bottom: 15px;
+  font-weight: 700;
+}
+
+/* Accent Colors */
+.meds-header {
+  color: #00b894;
+}
+
+.food-header {
+  color: #e74c3c;
+}
+
+/* Close Button */
+.close-btn {
+  width: auto;
+  margin: 0;
+  padding: 6px 10px;
+
+  background: #ecf0f1;
+  color: #2d3436;
+
+  border-radius: 8px;
+}
+
+/* Shared Textarea */
+.meds-popup textarea,
+.food-popup textarea {
+  width: 100%;
+  min-height: 180px;
+
+  padding: 12px;
+
+  border: 1px solid #dfe6e9;
+  border-radius: 10px;
+
+  font-size: 0.95rem;
+
+  resize: vertical;
+  box-sizing: border-box;
+}
+/* Mobile Responsive */
+@media (max-width: 850px) {
+  .board {
+    flex-direction: column;
+  }
+  .column {
+    width: 100%;
+    box-sizing: border-box;
+  }
+}
+
+.task-dates {
+  margin-top: 6px;
+  font-size: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.created {
+  color: #00b894; /* green */
+}
+
+.finished {
+  color: #e74c3c; /* red */
+}
+
+.archive-btn {
+  margin-top: 8px;
+  padding: 6px 10px;
+
+  font-size: 0.75rem;
+
+  background: #ff4757;
+  color: white;
+
+  border: none;
+  border-radius: 8px;
+
+  cursor: pointer;
+}
+
+/* archive hidden style */
+.archived {
+  opacity: 0.4;
+}
+
