@@ -7,8 +7,9 @@ import {
 } from 'react-router-dom';
 
 import { supabase } from './utils/supabaseclient'
-
+import Auth from './Auth';
 export default function App() {
+  const [session, setSession] = useState(null);
   const [tasks, setTasks] = useState([]);
   const [showMeds, setShowMeds] = useState(false);
 const [medsNote, setMedsNote] = useState('');
@@ -43,6 +44,28 @@ useEffect(() => {
   return () => window.removeEventListener("error", handler)
 }, []) // Empty array means this runs once on mount
 
+useEffect(() => {
+    // 1. Check current login status
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+    });
+
+    // 2. Listen for login/logout changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+// New effect to load data ONLY when session exists
+useEffect(() => {
+  if (session) {
+    loadTasks();
+    loadSettings();
+  }
+}, [session]);
+  
 const deleteTask = async (id) => {
   if (window.confirm("Delete forever?")) {
     const { error } = await supabase.from('tasks').delete().eq('id', id);
@@ -289,16 +312,23 @@ const saveNote = async (type, content) => {
   );
 
 
+// AUTH GATEKEEPER: If no user, show Auth screen
+if (!session) return <Auth />;
+
 return (
   <Routes>
-
     <Route
       path="/"
       element={
         <div className="container">
-
-          <header>
+          <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <h1>Focus OS</h1>
+            <button 
+              onClick={() => supabase.auth.signOut()} 
+              style={{ width: 'auto', background: '#dfe6e9', color: '#2d3436', fontSize: '0.8rem', padding: '5px 12px' }}
+            >
+              Sign Out
+            </button>
           </header>
 
           <div className="board">
@@ -309,116 +339,82 @@ return (
 
           {showTaskPopup && (
             <div className="task-popup">
-
               <div className="task-header">
                 <span>New Task</span>
-
-                <button
-                  className="close-btn"
-                  onClick={() => setShowTaskPopup(false)}
-                >
-                  ✕
-                </button>
+                <button className="close-btn" onClick={() => setShowTaskPopup(false)}>✕</button>
               </div>
-
               <textarea
                 placeholder="Enter task..."
                 value={newTaskText}
                 onChange={(e) => setNewTaskText(e.target.value)}
               />
-
-              <button
-                className="save-btn"
-                onClick={saveTask}
-              >
-                Add Task
-              </button>
-
+              <button className="save-btn" onClick={saveTask}>Add Task</button>
             </div>
           )}
 
           <div className="floating-buttons">
-
-            <button
-              className="food-button"
-              onClick={() => setShowFood(true)}
-            >
-              Food
-            </button>
-
-            <button
-              className="meds-button"
-              onClick={() => setShowMeds(true)}
-            >
-              Meds
-            </button>
-
+            <button className="food-button" onClick={() => setShowFood(true)}>Food</button>
+            <button className="meds-button" onClick={() => setShowMeds(true)}>Meds</button>
             <Link to="/archive">
-              <button className="archive-button">
-                Archive
-              </button>
+              <button className="archive-button">Archive</button>
             </Link>
-
           </div>
-          {/* Food Popup */}
+
           {showFood && (
             <div className="food-popup">
               <div className="food-header">
                 <span>Food Notes</span>
                 <button className="close-btn" onClick={() => setShowFood(false)}>✕</button>
-                </div>
-                 <textarea
-                 placeholder="Write your food notes here..."
-                 value={foodNote}
-                 onChange={(e) => setFoodNote(e.target.value)}
-                 />
-                 <button 
-                 className="save-btn" 
-                 style={{ backgroundColor: '#e74c3c' }} 
-                 onClick={() => saveNote('food', foodNote)}
-                 >
-                  Save Food Note
-                  </button>
-                   </div>
-                  )}
+              </div>
+              <textarea
+                placeholder="Write your food notes here..."
+                value={foodNote}
+                onChange={(e) => setFoodNote(e.target.value)}
+              />
+              <button 
+                className="save-btn" 
+                style={{ backgroundColor: '#e74c3c', marginTop: '10px' }} 
+                onClick={() => saveNote('food', foodNote)}
+              >
+                Save Food Note
+              </button>
+            </div>
+          )}
 
-          {/* Meds Popup */}
-{showMeds && (
-  <div className="meds-popup">
-    <div className="meds-header">
-      <span>Meds Notes</span>
-      <button className="close-btn" onClick={() => setShowMeds(false)}>✕</button>
-    </div>
-    <textarea
-      placeholder="Write your meds notes here..."
-      value={medsNote}
-      onChange={(e) => setMedsNote(e.target.value)}
-    />
-    <button 
-      className="save-btn" 
-      style={{ backgroundColor: '#00b894' }} 
-      onClick={() => saveNote('meds', medsNote)}
-    >
-      Save Meds Note
-    </button>
-  </div>
-)}
-
+          {showMeds && (
+            <div className="meds-popup">
+              <div className="meds-header">
+                <span>Meds Notes</span>
+                <button className="close-btn" onClick={() => setShowMeds(false)}>✕</button>
+              </div>
+              <textarea
+                placeholder="Write your meds notes here..."
+                value={medsNote}
+                onChange={(e) => setMedsNote(e.target.value)}
+              />
+              <button 
+                className="save-btn" 
+                style={{ backgroundColor: '#00b894', marginTop: '10px' }} 
+                onClick={() => saveNote('meds', medsNote)}
+              >
+                Save Meds Note
+              </button>
+            </div>
+          )}
         </div>
       }
     />
 
-   <Route
-  path="/archive"
-  element={
-    <ArchivePage 
-      tasks={tasks} 
-      restoreTask={restoreTask} 
-      deleteTask={deleteTask} 
+    <Route
+      path="/archive"
+      element={
+        <ArchivePage 
+          tasks={tasks} 
+          restoreTask={restoreTask} 
+          deleteTask={deleteTask} 
+        />
+      }
     />
-  }
-/>
-
   </Routes>
 );
 }
