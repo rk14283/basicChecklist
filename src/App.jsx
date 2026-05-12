@@ -38,9 +38,32 @@ useEffect(() => {
 
   // 2. CALL THE FUNCTION HERE
   loadTasks();
+  loadSettings(); // Add this call
 
   return () => window.removeEventListener("error", handler)
 }, []) // Empty array means this runs once on mount
+
+const loadSettings = async () => {
+  const { data, error } = await supabase
+    .from('settings')
+    .select('*');
+
+  if (!error && data) {
+    const newTitles = { ...titles };
+    data.forEach(item => {
+      // Load Column Titles
+      if (item.key.startsWith('title_')) {
+        const category = item.key.replace('title_', '');
+        newTitles[category] = item.value;
+      }
+      // Load Food Note
+      if (item.key === 'note_food') setFoodNote(item.value);
+      // Load Meds Note
+      if (item.key === 'note_meds') setMedsNote(item.value);
+    });
+    setTitles(newTitles);
+  }
+};
 
 const loadTasks = async () => {
   const { data, error } = await supabase
@@ -193,30 +216,29 @@ const editHeader = async (category) => {
   const newTitle = prompt(
     "Enter new title for this column:",
     titles[category]
-  )
+  );
 
-  if (!newTitle || newTitle === titles[category]) return
+  if (!newTitle || newTitle === titles[category]) return;
 
-  // update UI instantly
+  // 1. Update UI instantly
   setTitles(prev => ({
     ...prev,
     [category]: newTitle
-  }))
+  }));
 
+  // 2. Save to Supabase
   const { error } = await supabase
     .from('settings')
-    .upsert([
-      {
-        key: `title_${category}`,
-        value: newTitle
-      }
-    ])
+    .upsert({
+      key: `title_${category}`,
+      value: newTitle
+    }, { onConflict: 'key' }); // Ensures it updates if key exists
 
   if (error) {
-    alert(error.message)
+    console.error("Error saving title:", error.message);
+    alert("Failed to save title to database.");
   }
-}
-
+};
 // Add this function below your archiveTask function
 const restoreTask = async (id) => {
   const { error } = await supabase
@@ -230,6 +252,23 @@ const restoreTask = async (id) => {
   }
 };
 
+const saveNote = async (type, content) => {
+  const { error } = await supabase
+    .from('settings')
+    .upsert({
+      key: `note_${type}`,
+      value: content
+    }, { onConflict: 'key' });
+
+  if (error) {
+    alert("Failed to save note: " + error.message);
+  } else {
+    // Optional: visual feedback
+    console.log(`${type} note saved!`);
+    if (type === 'food') setShowFood(false);
+    if (type === 'meds') setShowMeds(false);
+  }
+};
   const renderColumn = (category, colorClass) => (
     
     <div className="column">
@@ -371,56 +410,49 @@ return (
             </Link>
 
           </div>
-
+          {/* Food Popup */}
           {showFood && (
             <div className="food-popup">
               <div className="food-header">
-
                 <span>Food Notes</span>
+                <button className="close-btn" onClick={() => setShowFood(false)}>✕</button>
+                </div>
+                 <textarea
+                 placeholder="Write your food notes here..."
+                 value={foodNote}
+                 onChange={(e) => setFoodNote(e.target.value)}
+                 />
+                 <button 
+                 className="save-btn" 
+                 style={{ backgroundColor: '#e74c3c' }} 
+                 onClick={() => saveNote('food', foodNote)}
+                 >
+                  Save Food Note
+                  </button>
+                   </div>
+                  )}
 
-                <button
-                  className="close-btn"
-                  onClick={() => setShowFood(false)}
-                >
-                  ✕
-                </button>
-
-              </div>
-
-              <textarea
-                placeholder="Write your food notes here..."
-                value={foodNote}
-                onChange={(e) =>
-                  setFoodNote(e.target.value)
-                }
-              />
-            </div>
-          )}
-
-          {showMeds && (
-            <div className="meds-popup">
-              <div className="meds-header">
-
-                <span>Meds Notes</span>
-
-                <button
-                  className="close-btn"
-                  onClick={() => setShowMeds(false)}
-                >
-                  ✕
-                </button>
-
-              </div>
-
-              <textarea
-                placeholder="Write your meds notes here..."
-                value={medsNote}
-                onChange={(e) =>
-                  setMedsNote(e.target.value)
-                }
-              />
-            </div>
-          )}
+          {/* Meds Popup */}
+{showMeds && (
+  <div className="meds-popup">
+    <div className="meds-header">
+      <span>Meds Notes</span>
+      <button className="close-btn" onClick={() => setShowMeds(false)}>✕</button>
+    </div>
+    <textarea
+      placeholder="Write your meds notes here..."
+      value={medsNote}
+      onChange={(e) => setMedsNote(e.target.value)}
+    />
+    <button 
+      className="save-btn" 
+      style={{ backgroundColor: '#00b894' }} 
+      onClick={() => saveNote('meds', medsNote)}
+    >
+      Save Meds Note
+    </button>
+  </div>
+)}
 
         </div>
       }
