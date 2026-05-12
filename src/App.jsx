@@ -80,7 +80,6 @@ const archiveTask = (id) => {
 
 const ArchivePage = () => (
   <div className="container">
-
     <header>
       <h1>Archive</h1>
     </header>
@@ -118,6 +117,17 @@ const ArchivePage = () => (
                 </small>
               )}
             </div>
+
+            <button
+              className="delete-button"
+              onClick={() =>
+                setArchive(
+                  archive.filter(t => t.id !== task.id)
+                )
+              }
+            >
+              Delete Forever
+            </button>
           </div>
         ))
       )}
@@ -131,7 +141,6 @@ const ArchivePage = () => (
     </div>
   </div>
 );
-
   // Function to change the Column Title
   const editHeader = async (category) => {
     const newTitle = prompt("Enter new title for this column:", titles[category]);
