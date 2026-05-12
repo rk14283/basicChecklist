@@ -140,17 +140,27 @@ const toggleTask = async (id) => {
 const archiveTask = async (id) => {
   const { error } = await supabase
     .from('tasks')
-    .update({
-      archived: true
-    })
-    .eq('id', id)
+    .update({ archived: true })
+    .eq('id', id);
 
   if (!error) {
-    setTasks(tasks.filter(t => t.id !== id))
+    // DO NOT FILTER. Just update the 'archived' property locally.
+    setTasks(prev => prev.map(t => 
+      t.id === id ? { ...t, archived: true } : t
+    ));
+  } else {
+    alert("Error archiving: " + error.message);
   }
-}
+};
 const ArchivePage = () => {
   const archivedTasks = tasks.filter(t => t.archived);
+
+  // Helper to match your CSS classes (cat-a, cat-b, cat-misc)
+  const getCategoryClass = (cat) => {
+    if (cat === 'Goal_A') return 'cat-a';
+    if (cat === 'Goal_B') return 'cat-b';
+    return 'cat-misc';
+  };
 
   return (
     <div className="container">
@@ -158,44 +168,54 @@ const ArchivePage = () => {
         <h1>Archived Tasks</h1>
       </header>
 
-      <div className="archive-list">
+      <div className="archive-list" style={{ maxWidth: '600px', margin: '0 auto' }}>
         {archivedTasks.length === 0 ? (
-          <p style={{ textAlign: 'center' }}>No archived tasks.</p>
+          <p style={{ textAlign: 'center', opacity: 0.6 }}>No archived tasks yet.</p>
         ) : (
           archivedTasks.map(task => (
-            <div key={task.id} className={`archived-item cat-${task.category.toLowerCase()}-item`} style={{ background: 'white', padding: '15px', borderRadius: '12px', marginBottom: '15px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
-              <div style={{ fontWeight: 'bold', textDecoration: 'line-through', color: '#7f8c8d' }}>
+            <div 
+              key={task.id} 
+              className={`archived-item ${getCategoryClass(task.category)}-item`} 
+              style={{ 
+                background: 'white', 
+                padding: '16px', 
+                borderRadius: '12px', 
+                marginBottom: '12px', 
+                boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+                borderLeft: '5px solid' // The color comes from the class above
+              }}
+            >
+              <div style={{ fontWeight: 'bold', textDecoration: 'line-through', color: '#7f8c8d', marginBottom: '8px' }}>
                 {task.content}
               </div>
 
-              {/* Date Section - Reusing your existing CSS classes */}
               <div className="task-dates">
                 <small className="created">
                   Created: {task.created_at ? new Date(task.created_at).toLocaleDateString() : "—"}
                 </small>
                 {task.finished_at && (
-                  <small className="finished">
+                  <small className="finished" style={{ color: '#e74c3c', fontWeight: 'bold' }}>
                     Finished: {new Date(task.finished_at).toLocaleDateString()}
                   </small>
                 )}
               </div>
 
-              <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+              <div style={{ display: 'flex', gap: '10px', marginTop: '12px' }}>
                 <button 
                   onClick={() => restoreTask(task.id)}
-                  style={{ background: '#00b894', fontSize: '0.8rem' }}
+                  style={{ background: '#00b894', padding: '6px 12px', fontSize: '0.8rem', width: 'auto' }}
                 >
-                  Restore
+                  Restore to Board
                 </button>
                 
                 <button
                   onClick={async () => {
-                    if(window.confirm("Delete forever?")) {
-                      await supabase.from('tasks').delete().eq('id', task.id);
-                      setTasks(tasks.filter(t => t.id !== task.id));
+                    if(window.confirm("Delete this task forever?")) {
+                      const { error } = await supabase.from('tasks').delete().eq('id', task.id);
+                      if (!error) setTasks(tasks.filter(t => t.id !== task.id));
                     }
                   }}
-                  style={{ background: '#e74c3c', fontSize: '0.8rem' }}
+                  style={{ background: '#e74c3c', padding: '6px 12px', fontSize: '0.8rem', width: 'auto' }}
                 >
                   Delete Forever
                 </button>
@@ -205,7 +225,7 @@ const ArchivePage = () => {
         )}
       </div>
 
-      <Link to="/" style={{ display: 'block', textAlign: 'center', marginTop: '20px', fontWeight: 'bold', color: '#1e272e' }}>
+      <Link to="/" style={{ display: 'block', textAlign: 'center', marginTop: '30px', fontWeight: '800', color: '#1e272e', textDecoration: 'none' }}>
         ← Back to Board
       </Link>
     </div>
