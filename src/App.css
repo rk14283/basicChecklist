@@ -230,10 +230,80 @@ button:hover {
   cursor: pointer;
 }
 
+/* Task top row */
+.task-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+/* Task text */
+.task-top span {
+  flex: 1;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+/* Edit input */
+.edit-input {
+  flex: 1;
+
+  border: none;
+  outline: none;
+
+  background: transparent;
+
+  font-size: 0.95rem;
+  font-family: inherit;
+  color: #2d3436;
+
+  padding: 0;
+  margin: 0;
+}
+
+/* metadata section */
+.task-dates {
+  margin-top: 8px;
+  margin-left: 28px;
+
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+
+  font-size: 0.72rem;
+  font-weight: 500;
+
+  opacity: 0.7;
+}
+
+/* Created date */
+.created {
+  color: #00b894;
+}
+
+/* Finished date */
+.finished {
+  color: #e17055;
+}
+
 /* completed task */
 .done {
   text-decoration: line-through;
   opacity: 0.5;
+}
+
+/* smoother task card feel */
+li {
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+li:hover {
+  transform: translateY(-1px);
+
+  box-shadow:
+    0 6px 16px rgba(0,0,0,0.05);
 }
 
 /* Shared Floating Button Style */
@@ -351,21 +421,6 @@ button:hover {
   }
 }
 
-.task-dates {
-  margin-top: 6px;
-  font-size: 0.75rem;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.created {
-  color: #00b894; /* green */
-}
-
-.finished {
-  color: #e74c3c; /* red */
-}
 
 .archive-btn {
   margin-top: 8px;
