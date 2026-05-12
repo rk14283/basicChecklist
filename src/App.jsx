@@ -5,6 +5,9 @@ import {
   Route,
   Link
 } from 'react-router-dom';
+
+import { supabase } from './utils/supabaseclient'
+
 export default function App() {
   const [tasks, setTasks] = useState([]);
   const [showMeds, setShowMeds] = useState(false);
@@ -15,9 +18,9 @@ const [foodNote, setFoodNote] = useState('');
 const [showTaskPopup, setShowTaskPopup] = useState(false);
 const [newTaskText, setNewTaskText] = useState('');
 const [activeCategory, setActiveCategory] = useState(null);
-const [archive, setArchive] = useState([]);
 const [showArchive, setShowArchive] = useState(false);
   
+
   // State for editable headers - initialized with defaults
   const [titles, setTitles] = useState({
     Goal_A: "Primary Goal",
@@ -25,141 +28,210 @@ const [showArchive, setShowArchive] = useState(false);
     Misc: "Miscellaneous"
   });
 
+useEffect(() => {
+
+  // 1. Keep your error listener
+  const handler = (event) => {
+    console.error("🔥 GLOBAL ERROR:", event.error)
+  }
+  window.addEventListener("error", handler)
+
+  // 2. CALL THE FUNCTION HERE
+  loadTasks();
+
+  return () => window.removeEventListener("error", handler)
+}, []) // Empty array means this runs once on mount
+
+const loadTasks = async () => {
+  const { data, error } = await supabase
+    .from('tasks')
+    .select('*')
+    .order('created_at', { ascending: false })
+
+  if (!error) setTasks(data)
+}
   const addTask = (category) => {
   setActiveCategory(category);
   setShowTaskPopup(true);
 };
-const saveTask = () => {
+const saveTask = async () => {
   if (!newTaskText.trim()) return;
 
- const task = {
-  id: Date.now(),
-  content: newTaskText,
-  category: activeCategory,
-  done: false,
-  createdAt: new Date().toISOString(),
-  finishedAt: null,
-  archived: false,
-  editing: false
-};
-  setTasks([task, ...tasks]);
-  setNewTaskText('');
-  setShowTaskPopup(false);
-};
+  const { data, error } = await supabase
+    .from('tasks')
+    .insert([
+      {
+        content: newTaskText,
+        category: activeCategory,
+        done: false,
+        archived: false,
+        created_at: new Date().toISOString(),
+        finished_at: null
+      }
+    ])
+    .select()
 
-const toggleTask = (id) => {
-  setTasks(
-    tasks.map(t => {
-      if (t.id !== id) return t;
+  console.log("INSERT RESULT:", data)
+  console.log("INSERT ERROR:", error)
 
-      const nowDone = !t.done;
+  if (error) {
+    alert(error.message)
+    return
+  }
 
-      return {
-        ...t,
-        done: nowDone,
-        finishedAt: nowDone ? new Date() : null
-      };
+  setTasks([data[0], ...tasks])
+  setNewTaskText('')
+  setShowTaskPopup(false)
+}
+const toggleTask = async (id) => {
+  // 1. Find the task
+  const task = tasks.find(t => t.id === id);
+  if (!task) return;
+
+  const updatedDone = !task.done;
+
+  // 2. UPDATE UI IMMEDIATELY (Optimistic)
+  setTasks(prev => prev.map(t => 
+    t.id === id ? { ...t, done: updatedDone } : t
+  ));
+
+  // 3. TELL SUPABASE
+  const { data, error } = await supabase
+    .from('tasks')
+    .update({
+      done: updatedDone,
+      finished_at: updatedDone ? new Date().toISOString() : null
     })
+    .eq('id', id)
+    .select();
+
+  // 4. IF SUPABASE FAILS, REVERT UI
+  if (error || !data || data.length === 0) {
+    console.error("Supabase failed to sync. Reverting...");
+    setTasks(prev => prev.map(t => 
+      t.id === id ? { ...t, done: !updatedDone } : t
+    ));
+    alert("Database update failed. Check your Supabase RLS Policies!");
+  }
+};
+const archiveTask = async (id) => {
+  const { error } = await supabase
+    .from('tasks')
+    .update({
+      archived: true
+    })
+    .eq('id', id)
+
+  if (!error) {
+    setTasks(tasks.filter(t => t.id !== id))
+  }
+}
+const ArchivePage = () => {
+  const archivedTasks = tasks.filter(t => t.archived);
+
+  return (
+    <div className="container">
+      <header>
+        <h1>Archived Tasks</h1>
+      </header>
+
+      <div className="archive-list">
+        {archivedTasks.length === 0 ? (
+          <p style={{ textAlign: 'center' }}>No archived tasks.</p>
+        ) : (
+          archivedTasks.map(task => (
+            <div key={task.id} className={`archived-item cat-${task.category.toLowerCase()}-item`} style={{ background: 'white', padding: '15px', borderRadius: '12px', marginBottom: '15px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
+              <div style={{ fontWeight: 'bold', textDecoration: 'line-through', color: '#7f8c8d' }}>
+                {task.content}
+              </div>
+
+              {/* Date Section - Reusing your existing CSS classes */}
+              <div className="task-dates">
+                <small className="created">
+                  Created: {task.created_at ? new Date(task.created_at).toLocaleDateString() : "—"}
+                </small>
+                {task.finished_at && (
+                  <small className="finished">
+                    Finished: {new Date(task.finished_at).toLocaleDateString()}
+                  </small>
+                )}
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+                <button 
+                  onClick={() => restoreTask(task.id)}
+                  style={{ background: '#00b894', fontSize: '0.8rem' }}
+                >
+                  Restore
+                </button>
+                
+                <button
+                  onClick={async () => {
+                    if(window.confirm("Delete forever?")) {
+                      await supabase.from('tasks').delete().eq('id', task.id);
+                      setTasks(tasks.filter(t => t.id !== task.id));
+                    }
+                  }}
+                  style={{ background: '#e74c3c', fontSize: '0.8rem' }}
+                >
+                  Delete Forever
+                </button>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      <Link to="/" style={{ display: 'block', textAlign: 'center', marginTop: '20px', fontWeight: 'bold', color: '#1e272e' }}>
+        ← Back to Board
+      </Link>
+    </div>
   );
 };
-const archiveTask = (id) => {
-  const taskToArchive = tasks.find(t => t.id === id);
+  // Function to change the Column Title
+const editHeader = async (category) => {
+  const newTitle = prompt(
+    "Enter new title for this column:",
+    titles[category]
+  )
 
-  if (!taskToArchive) return;
+  if (!newTitle || newTitle === titles[category]) return
 
-  setArchive([
-    {
-      ...taskToArchive,
-      archivedAt: new Date().toISOString()
-    },
-    ...archive
-  ]);
+  // update UI instantly
+  setTitles(prev => ({
+    ...prev,
+    [category]: newTitle
+  }))
 
-  setTasks(tasks.filter(t => t.id !== id));
+  const { error } = await supabase
+    .from('settings')
+    .upsert([
+      {
+        key: `title_${category}`,
+        value: newTitle
+      }
+    ])
+
+  if (error) {
+    alert(error.message)
+  }
+}
+
+// Add this function below your archiveTask function
+const restoreTask = async (id) => {
+  const { error } = await supabase
+    .from('tasks')
+    .update({ archived: false })
+    .eq('id', id);
+
+  if (!error) {
+    // Update local state to show it back in the main columns
+    setTasks(prev => prev.map(t => t.id === id ? { ...t, archived: false } : t));
+  }
 };
 
-const ArchivePage = () => (
-  <div className="container">
-    <header>
-      <h1>Archive</h1>
-    </header>
-
-    <div className="column">
-
-      {archive.length === 0 ? (
-        <small>No archived tasks yet.</small>
-      ) : (
-        archive.map(task => (
-          <div
-            key={task.id}
-            className={`archived-item ${
-              task.category === "Goal_A"
-                ? "cat-a"
-                : task.category === "Goal_B"
-                ? "cat-b"
-                : "cat-misc"
-            }`}
-          >
-            <div className="done">
-              {task.content}
-            </div>
-
-            <div className="task-dates">
-              <small className="created">
-                Created:{" "}
-                {new Date(task.createdAt).toLocaleDateString()}
-              </small>
-
-              {task.finishedAt && (
-                <small className="finished">
-                  Finished:{" "}
-                  {new Date(task.finishedAt).toLocaleDateString()}
-                </small>
-              )}
-            </div>
-
-            <button
-              className="delete-button"
-              onClick={() =>
-                setArchive(
-                  archive.filter(t => t.id !== task.id)
-                )
-              }
-            >
-              Delete Forever
-            </button>
-          </div>
-        ))
-      )}
-
-      <Link to="/">
-        <button>
-          Back
-        </button>
-      </Link>
-
-    </div>
-  </div>
-);
-  // Function to change the Column Title
-  const editHeader = async (category) => {
-    const newTitle = prompt("Enter new title for this column:", titles[category]);
-    if (!newTitle || newTitle === titles[category]) return;
-
-    // Update UI immediately
-    setTitles({ ...titles, [category]: newTitle });
-
-    // Save to Database
-    await fetch('http://localhost:3001/settings', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ key: `title_${category}`, value: newTitle })
-    });
-  };
-
-
-
   const renderColumn = (category, colorClass) => (
+    
     <div className="column">
       <div 
         className={`column-header ${colorClass}`} 
@@ -171,47 +243,45 @@ const ArchivePage = () => (
       </div>
       <ul>
         {tasks
-          .filter(t => t.category === category)
+          .filter(t => t.category === category && !t.archived)
           .map(task => (
      <li key={task.id} className={`${colorClass}-item`}>
-  <div className="task-top">
+ <div className="task-top">
+  <input
+    type="checkbox"
+    checked={task.done}
+    onChange={() => toggleTask(task.id)}
+  />
 
-    <input
-      type="checkbox"
-      checked={task.done}
-      onChange={() => toggleTask(task.id)}
-    />
-
-    <input
-      className={`edit-input ${task.done ? "done" : ""}`}
-      value={task.content}
-      onChange={(e) =>
-        setTasks(
-          tasks.map(t =>
-            t.id === task.id
-              ? { ...t, content: e.target.value }
-              : t
-          )
-        )
-      }
-    />
-  </div>
+  {/* Swap between input and span for better styling support */}
+  {task.done ? (
+  <span className="edit-input done">{task.content}</span>
+) : (
+  <input
+    className="edit-input"
+    value={task.content}
+    onChange={(e) => { /* handle change */ }}
+  />
+)}
+</div>
 
   <div className="task-dates">
     <small className="created">
-      Created:{" "}
-      {new Date(task.createdAt).toLocaleDateString()}
-    </small>
+  {task.created_at
+    ? new Date(task.created_at).toLocaleDateString()
+    : "—"}
+</small>
 
-    {task.finishedAt && (
-      <small className="finished">
-        Finished:{" "}
-        {new Date(task.finishedAt).toLocaleDateString()}
-      </small>
-    )}
+   {/* Ensure this triggers when the task is done and has a date */}
+  {task.done && task.finished_at && (
+    <small className="finished">
+      Finished: {new Date(task.finished_at).toLocaleDateString()}
+    </small>
+)}
   </div>
 
   {task.done && (
+    
   <button
     className="archive-button"
     onClick={() => archiveTask(task.id)}
@@ -226,6 +296,7 @@ const ArchivePage = () => (
       </ul>
       <button onClick={() => addTask(category)}>+ New Task</button>
     </div>
+    
   );
 
 

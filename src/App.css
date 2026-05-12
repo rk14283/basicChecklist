@@ -288,8 +288,20 @@ button:hover {
 
 /* completed task */
 .done {
-  text-decoration: line-through;
+  text-decoration: line-through !important;
+  text-decoration-color: #ff4757 !important; /* Optional: Make the line red for visibility */
+  text-decoration-thickness: 2px;
   opacity: 0.5;
+  color: #7f8c8d;
+  display: inline-block;
+  padding-left: 5px;
+}
+/* Finished date - Bright Red */
+.finished {
+  color: #e74c3c !important; /* Vivid red */
+  font-weight: 700;
+  display: block; /* Ensures it sits on its own line if needed */
+  margin-top: 2px;
 }
 
 /* smoother task card feel */
@@ -442,3 +454,19 @@ li:hover {
   opacity: 0.4;
 }
 
+/* Add these if not already present or to improve the Archive look */
+.archive-list {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.archived-item {
+  border-left: 5px solid #2d3436; /* Default border */
+  display: flex;
+  flex-direction: column;
+}
+
+/* Reusing your color accents */
+.archived-item.cat-goal_a-item { border-left-color: #6c5ce7; }
+.archived-item.cat-goal_b-item { border-left-color: #00b894; }
+.archived-item.cat-misc-item { border-left-color: #b2bec3; }
