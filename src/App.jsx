@@ -19,7 +19,7 @@ const [foodNote, setFoodNote] = useState('');
 const [showTaskPopup, setShowTaskPopup] = useState(false);
 const [newTaskText, setNewTaskText] = useState('');
 const [activeCategory, setActiveCategory] = useState(null);
-const [showArchive, setShowArchive] = useState(false);
+
   
 
   // State for editable headers - initialized with defaults
@@ -30,20 +30,14 @@ const [showArchive, setShowArchive] = useState(false);
   });
 
 useEffect(() => {
-
-  // 1. Keep your error listener
   const handler = (event) => {
-    console.error("🔥 GLOBAL ERROR:", event.error)
-  }
-  window.addEventListener("error", handler)
+    console.error("🔥 GLOBAL ERROR:", event.error);
+  };
 
-  // 2. CALL THE FUNCTION HERE
-  loadTasks();
-  loadSettings(); // Add this call
+  window.addEventListener("error", handler);
 
-  return () => window.removeEventListener("error", handler)
-}, []) // Empty array means this runs once on mount
-
+  return () => window.removeEventListener("error", handler);
+}, []);
 useEffect(() => {
     // 1. Check current login status
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -67,43 +61,72 @@ useEffect(() => {
 }, [session]);
   
 const deleteTask = async (id) => {
-  if (window.confirm("Delete forever?")) {
-    const { error } = await supabase.from('tasks').delete().eq('id', id);
-    if (!error) {
-      setTasks(prev => prev.filter(t => t.id !== id));
-    }
+  if (!window.confirm("Delete forever?")) return;
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return;
+
+  const { error } = await supabase
+    .from('tasks')
+    .delete()
+    .eq('id', id)
+    .eq('user_id', user.id);
+
+  if (!error) {
+    setTasks(prev => prev.filter(t => t.id !== id));
   }
 };
 const loadSettings = async () => {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return;
+
   const { data, error } = await supabase
     .from('settings')
-    .select('*');
+    .select('*')
+    .eq('user_id', user.id);
 
   if (!error && data) {
     const newTitles = { ...titles };
+
     data.forEach(item => {
-      // Load Column Titles
       if (item.key.startsWith('title_')) {
         const category = item.key.replace('title_', '');
         newTitles[category] = item.value;
       }
-      // Load Food Note
-      if (item.key === 'note_food') setFoodNote(item.value);
-      // Load Meds Note
-      if (item.key === 'note_meds') setMedsNote(item.value);
+
+      if (item.key === 'note_food') {
+        setFoodNote(item.value);
+      }
+
+      if (item.key === 'note_meds') {
+        setMedsNote(item.value);
+      }
     });
+
     setTitles(newTitles);
   }
 };
-
 const loadTasks = async () => {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return;
+
   const { data, error } = await supabase
     .from('tasks')
     .select('*')
-    .order('created_at', { ascending: false })
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false });
 
-  if (!error) setTasks(data)
-}
+  if (!error) setTasks(data);
+};
   const addTask = (category) => {
   setActiveCategory(category);
   setShowTaskPopup(true);
@@ -111,10 +134,22 @@ const loadTasks = async () => {
 const saveTask = async () => {
   if (!newTaskText.trim()) return;
 
+  // Get the currently logged in user
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    alert("No logged in user found");
+    return;
+  }
+
+  // Insert task WITH user_id
   const { data, error } = await supabase
     .from('tasks')
     .insert([
       {
+        user_id: user.id, // THIS is the critical fix
         content: newTaskText,
         category: activeCategory,
         done: false,
@@ -123,62 +158,118 @@ const saveTask = async () => {
         finished_at: null
       }
     ])
-    .select()
+    .select();
 
-  console.log("INSERT RESULT:", data)
-  console.log("INSERT ERROR:", error)
+  console.log("INSERT RESULT:", data);
+  console.log("INSERT ERROR:", error);
 
   if (error) {
-    alert(error.message)
-    return
+    alert(error.message);
+    return;
   }
 
-  setTasks([data[0], ...tasks])
-  setNewTaskText('')
-  setShowTaskPopup(false)
-}
+  setTasks([data[0], ...tasks]);
+  setNewTaskText('');
+  setShowTaskPopup(false);
+};
 const toggleTask = async (id) => {
-  // 1. Find the task
+  // Get current user
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return;
+
+  // Find task
   const task = tasks.find(t => t.id === id);
   if (!task) return;
 
   const updatedDone = !task.done;
 
-  // 2. UPDATE UI IMMEDIATELY (Optimistic)
-  setTasks(prev => prev.map(t => 
-    t.id === id ? { ...t, done: updatedDone } : t
-  ));
+  // Optimistic UI update
+  setTasks(prev =>
+    prev.map(t =>
+      t.id === id ? { ...t, done: updatedDone } : t
+    )
+  );
 
-  // 3. TELL SUPABASE
+  // Database update
   const { data, error } = await supabase
     .from('tasks')
     .update({
       done: updatedDone,
-      finished_at: updatedDone ? new Date().toISOString() : null
+      finished_at: updatedDone
+        ? new Date().toISOString()
+        : null
     })
     .eq('id', id)
+    .eq('user_id', user.id)
     .select();
 
-  // 4. IF SUPABASE FAILS, REVERT UI
+  // Revert if failed
   if (error || !data || data.length === 0) {
     console.error("Supabase failed to sync. Reverting...");
-    setTasks(prev => prev.map(t => 
-      t.id === id ? { ...t, done: !updatedDone } : t
-    ));
-    alert("Database update failed. Check your Supabase RLS Policies!");
+
+    setTasks(prev =>
+      prev.map(t =>
+        t.id === id ? { ...t, done: !updatedDone } : t
+      )
+    );
+
+    alert("Database update failed.");
+  }
+};
+
+const updateTaskContent = async (id, newContent) => {
+  // Update UI instantly
+  setTasks(prev =>
+    prev.map(task =>
+      task.id === id
+        ? { ...task, content: newContent }
+        : task
+    )
+  );
+
+  // Get current user
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return;
+
+  // Save to database
+  const { error } = await supabase
+    .from('tasks')
+    .update({ content: newContent })
+    .eq('id', id)
+    .eq('user_id', user.id);
+
+  if (error) {
+    console.error(error);
+    alert("Failed to update task");
   }
 };
 const archiveTask = async (id) => {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return;
+
   const { error } = await supabase
     .from('tasks')
     .update({ archived: true })
-    .eq('id', id);
+    .eq('id', id)
+    .eq('user_id', user.id);
 
   if (!error) {
-    // DO NOT FILTER. Just update the 'archived' property locally.
-    setTasks(prev => prev.map(task => 
-      task.id === id ? { ...task, archived: true } : task
-    ));
+    setTasks(prev =>
+      prev.map(task =>
+        task.id === id
+          ? { ...task, archived: true }
+          : task
+      )
+    );
   } else {
     alert("Error archiving: " + error.message);
   }
@@ -193,19 +284,32 @@ const editHeader = async (category) => {
 
   if (!newTitle || newTitle === titles[category]) return;
 
-  // 1. Update UI instantly
+  // Update UI instantly
   setTitles(prev => ({
     ...prev,
     [category]: newTitle
   }));
 
-  // 2. Save to Supabase
+  // Get current user
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return;
+
+  // Save to Supabase
   const { error } = await supabase
     .from('settings')
-    .upsert({
-      key: `title_${category}`,
-      value: newTitle
-    }, { onConflict: 'key' }); // Ensures it updates if key exists
+    .upsert(
+      {
+        user_id: user.id,
+        key: `title_${category}`,
+        value: newTitle
+      },
+      {
+        onConflict: 'user_id,key'
+      }
+    );
 
   if (error) {
     console.error("Error saving title:", error.message);
@@ -214,30 +318,56 @@ const editHeader = async (category) => {
 };
 // Add this function below your archiveTask function
 const restoreTask = async (id) => {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return;
+
   const { error } = await supabase
     .from('tasks')
     .update({ archived: false })
-    .eq('id', id);
+    .eq('id', id)
+    .eq('user_id', user.id);
 
   if (!error) {
-    // Update local state to show it back in the main columns
-    setTasks(prev => prev.map(t => t.id === id ? { ...t, archived: false } : t));
+    setTasks(prev =>
+      prev.map(t =>
+        t.id === id
+          ? { ...t, archived: false }
+          : t
+      )
+    );
   }
 };
 
 const saveNote = async (type, content) => {
+  // Get current user
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return;
+
+  // Save note
   const { error } = await supabase
     .from('settings')
-    .upsert({
-      key: `note_${type}`,
-      value: content
-    }, { onConflict: 'key' });
+    .upsert(
+      {
+        user_id: user.id,
+        key: `note_${type}`,
+        value: content
+      },
+      {
+        onConflict: 'user_id,key'
+      }
+    );
 
   if (error) {
     alert("Failed to save note: " + error.message);
   } else {
-    // Optional: visual feedback
     console.log(`${type} note saved!`);
+
     if (type === 'food') setShowFood(false);
     if (type === 'meds') setShowMeds(false);
   }
@@ -270,10 +400,12 @@ const saveNote = async (type, content) => {
   <span className="edit-input done">{task.content}</span>
 ) : (
   <input
-    className="edit-input"
-    value={task.content}
-    onChange={(e) => { /* handle change */ }}
-  />
+  className="edit-input"
+  value={task.content}
+  onChange={(e) =>
+    updateTaskContent(task.id, e.target.value)
+  }
+/>
 )}
 </div>
 
