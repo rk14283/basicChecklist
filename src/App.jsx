@@ -39,18 +39,23 @@ useEffect(() => {
   return () => window.removeEventListener("error", handler);
 }, []);
 useEffect(() => {
-    // 1. Check current login status
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-    });
+  let mounted = true;
 
-    // 2. Listen for login/logout changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-    });
+  supabase.auth.getSession().then(({ data: { session } }) => {
+    if (mounted) setSession(session);
+  });
 
-    return () => subscription.unsubscribe();
-  }, []);
+  const {
+    data: { subscription }
+  } = supabase.auth.onAuthStateChange((_event, session) => {
+    if (mounted) setSession(session);
+  });
+
+  return () => {
+    mounted = false;
+    subscription.unsubscribe();
+  };
+}, []);
 
 // New effect to load data ONLY when session exists
 useEffect(() => {
