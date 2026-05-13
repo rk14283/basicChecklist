@@ -12,11 +12,11 @@ import ConfirmationPage from './ConfirmationPage';
 export default function App() {
   const [session, setSession] = useState(null);
   const [tasks, setTasks] = useState([]);
-  const [showMeds, setShowMeds] = useState(false);
-const [medsNote, setMedsNote] = useState('');
+const [showNotes, setShowNotes] = useState(false);
+const [notesText, setNotesText] = useState('');
 
 const [showFood, setShowFood] = useState(false);
-const [foodNote, setFoodNote] = useState('');
+const [foodMedsText, setFoodMedsText] = useState('');
 const [showTaskPopup, setShowTaskPopup] = useState(false);
 const [newTaskText, setNewTaskText] = useState('');
 const [activeCategory, setActiveCategory] = useState(null);
@@ -106,13 +106,8 @@ const loadSettings = async () => {
         newTitles[category] = item.value;
       }
 
-      if (item.key === 'note_food') {
-        setFoodNote(item.value);
-      }
-
-      if (item.key === 'note_meds') {
-        setMedsNote(item.value);
-      }
+      if (item.key === 'note_notes') setNotesText(item.value);
+if (item.key === 'note_food_meds') setFoodMedsText(item.value);
     });
 
     setTitles(newTitles);
@@ -374,8 +369,10 @@ const saveNote = async (type, content) => {
   } else {
     console.log(`${type} note saved!`);
 
-    if (type === 'food') setShowFood(false);
-    if (type === 'meds') setShowMeds(false);
+    // ✅ CLOSE THE RIGHT POPUP
+  if (type === 'food') setShowFood(false);
+  if (type === 'notes') setShowNotes(false);
+  if (type === 'food_meds') setShowFood(false);
   }
 };
   const renderColumn = (category, colorClass) => (
@@ -491,54 +488,69 @@ return (
           )}
 
           <div className="floating-buttons">
-            <button className="food-button" onClick={() => setShowFood(true)}>Notes</button>
-            <button className="meds-button" onClick={() => setShowMeds(true)}>Food & Meds</button>
-            <Link to="/archive">
-              <button className="archive-button">Archive</button>
-            </Link>
-          </div>
+  <button
+    className="meds-button"
+    onClick={() => setShowNotes(true)}
+  >
+    Notes
+  </button>
 
-          {showFood && (
-            <div className="food-popup">
-              <div className="food-header">
-                <span>Notes</span>
-                <button className="close-btn" onClick={() => setShowFood(false)}>✕</button>
-              </div>
-              <textarea
-                placeholder="Write your food notes here..."
-                value={foodNote}
-                onChange={(e) => setFoodNote(e.target.value)}
-              />
-              <button 
-                className="save-btn" 
-                style={{ backgroundColor: '#e74c3c', marginTop: '10px' }} 
-                onClick={() => saveNote('food', foodNote)}
-              >
-                Save Notes
-              </button>
-            </div>
-          )}
+  <button
+    className="food-button"
+    onClick={() => setShowFood(true)}
+  >
+    Food & Meds
+  </button>
 
-          {showMeds && (
-            <div className="meds-popup">
-              <div className="meds-header">
-                <span>Food & Meds Notes</span>
-                <button className="close-btn" onClick={() => setShowMeds(false)}>✕</button>
-              </div>
-              <textarea
-                placeholder="Write your meds notes here..."
-                value={medsNote}
-                onChange={(e) => setMedsNote(e.target.value)}
-              />
-              <button 
-                className="save-btn" 
-                style={{ backgroundColor: '#00b894', marginTop: '10px' }} 
-                onClick={() => saveNote('meds', medsNote)}
-              >
-                Save Food & Meds Note
-              </button>
-            </div>
-          )}
+  <Link to="/archive">
+    <button className="archive-button">Archive</button>
+  </Link>
+</div>
+          {showNotes && (
+  <div className="meds-popup">
+    <div className="meds-header">
+      <span>Notes</span>
+      <button className="close-btn" onClick={() => setShowNotes(false)}>✕</button>
+    </div>
+
+    <textarea
+      placeholder="Write your notes here..."
+      value={notesText}
+      onChange={(e) => setNotesText(e.target.value)}
+    />
+
+    <button
+      className="save-btn"
+      style={{ backgroundColor: '#00b894', marginTop: '10px' }}
+      onClick={() => saveNote('notes', notesText)}
+    >
+      Save Notes
+    </button>
+  </div>
+)}
+
+         {showFood && (
+  <div className="food-popup">
+    <div className="food-header">
+      <span>Food & Meds</span>
+      <button className="close-btn" onClick={() => setShowFood(false)}>✕</button>
+    </div>
+
+    <textarea
+      placeholder="Write food & meds notes here..."
+      value={foodMedsText}
+      onChange={(e) => setFoodMedsText(e.target.value)}
+    />
+
+    <button
+      className="save-btn"
+      style={{ backgroundColor: '#e74c3c', marginTop: '10px' }}
+      onClick={() => saveNote('food_meds', foodMedsText)}
+    >
+      Save Food & Meds
+    </button>
+  </div>
+)}
         </div>
       }
     />
