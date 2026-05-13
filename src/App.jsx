@@ -8,6 +8,7 @@ import {
 
 import { supabase } from './utils/supabaseclient'
 import Auth from './Auth';
+import ConfirmationPage from './ConfirmationPage';
 export default function App() {
   const [session, setSession] = useState(null);
   const [tasks, setTasks] = useState([]);
@@ -490,8 +491,8 @@ return (
           )}
 
           <div className="floating-buttons">
-            <button className="food-button" onClick={() => setShowFood(true)}>Food</button>
-            <button className="meds-button" onClick={() => setShowMeds(true)}>Meds</button>
+            <button className="food-button" onClick={() => setShowFood(true)}>Notes</button>
+            <button className="meds-button" onClick={() => setShowMeds(true)}>Food & Meds</button>
             <Link to="/archive">
               <button className="archive-button">Archive</button>
             </Link>
@@ -500,7 +501,7 @@ return (
           {showFood && (
             <div className="food-popup">
               <div className="food-header">
-                <span>Food Notes</span>
+                <span>Notes</span>
                 <button className="close-btn" onClick={() => setShowFood(false)}>✕</button>
               </div>
               <textarea
@@ -513,7 +514,7 @@ return (
                 style={{ backgroundColor: '#e74c3c', marginTop: '10px' }} 
                 onClick={() => saveNote('food', foodNote)}
               >
-                Save Food Note
+                Save Notes
               </button>
             </div>
           )}
@@ -521,7 +522,7 @@ return (
           {showMeds && (
             <div className="meds-popup">
               <div className="meds-header">
-                <span>Meds Notes</span>
+                <span>Food & Meds Notes</span>
                 <button className="close-btn" onClick={() => setShowMeds(false)}>✕</button>
               </div>
               <textarea
@@ -534,7 +535,7 @@ return (
                 style={{ backgroundColor: '#00b894', marginTop: '10px' }} 
                 onClick={() => saveNote('meds', medsNote)}
               >
-                Save Meds Note
+                Save Food & Meds Note
               </button>
             </div>
           )}
@@ -552,6 +553,11 @@ return (
         />
       }
     />
+
+    <Route
+    path="/confirmationpage"
+    element={<ConfirmationPage />}
+  />
   </Routes>
 );
 }

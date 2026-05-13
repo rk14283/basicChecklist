@@ -13,7 +13,14 @@ export default function Auth() {
     const { error } =
       type === 'login'
         ? await supabase.auth.signInWithPassword({ email, password })
-        : await supabase.auth.signUp({ email, password });
+        : await supabase.auth.signUp({
+           email,
+           password,
+           options: {
+            emailRedirectTo:
+            'https://basic-checklist-3g3ouo0rp-rohankale67s-projects.vercel.app/confirmationpage',
+  },
+});
 
     if (error) {
       setMessage(error.message); // optional: show error in popup too
