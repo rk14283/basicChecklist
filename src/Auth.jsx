@@ -8,40 +8,36 @@ export default function Auth() {
   const [message, setMessage] = useState('');
 
   const getURL = () => {
-    // 1. Manually point to production to avoid Vercel's preview login screen
-    // 2. Fallback to localhost for development
     let url = 'https://basic-checklist.vercel.app'; 
-    
     if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
       url = 'http://localhost:3000';
     }
-
     return url;
   };
 
-  const handleAuth = async (type) => {
+  const handleAuth = async (authType) => {
     setLoading(true);
-    setMessage(''); // Clear old messages
+    setMessage('');
 
     const { error } =
-      type === 'login'
+      authType === 'login'
         ? await supabase.auth.signInWithPassword({ email, password })
         : await supabase.auth.signUp({
             email,
             password,
             options: {
-              // This sends the user to your clean production URL
-              emailRedirectTo: `${getURL()}/confirmationpage`,
+              emailRedirectTo:  getURL(),
             },
           });
 
     if (error) {
+      // If you see "Email rate limit exceeded", this is the 429 error.
       setMessage(error.message);
       setLoading(false);
       return;
     }
 
-    if (type === 'signup') {
+    if (authType === 'signup') {
       setMessage("📩 Confirmation email sent! Check your inbox.");
     } else {
       setMessage("✅ Logged in successfully!");
@@ -54,8 +50,11 @@ export default function Auth() {
     <div className="auth-container">
       <h1>Focus OS</h1>
 
-      {/* POPUP MESSAGE */}
-      {message && <div className="popup" style={{ padding: '10px', marginBottom: '10px', backgroundColor: '#f0f0f0', borderRadius: '5px' }}>{message}</div>}
+      {message && (
+        <div className="popup" style={{ padding: '10px', marginBottom: '10px', backgroundColor: '#fdf2f2', border: '1px solid #f8b4b4', borderRadius: '5px', color: '#9b1c1c' }}>
+          {message}
+        </div>
+      )}
 
       <input
         type="email"
@@ -73,11 +72,11 @@ export default function Auth() {
 
       <div className="button-group" style={{ marginTop: '10px' }}>
         <button disabled={loading} onClick={() => handleAuth('login')}>
-          {loading && type === 'login' ? 'Loading...' : 'Login'}
+          Login
         </button>
 
         <button disabled={loading} onClick={() => handleAuth('signup')}>
-          {loading && type === 'signup' ? 'Loading...' : 'Sign Up'}
+          Sign Up
         </button>
       </div>
     </div>

@@ -447,15 +447,18 @@ const saveNote = async (type, content) => {
   );
 
 
-// AUTH GATEKEEPER: If no user, show Auth screen
-if (!session) return <Auth />;
+
 
 return (
   <Routes>
     <Route
-      path="/"
-      element={
-        <div className="container">
+  path="/"
+  element={
+    !session ? (
+      <Auth />
+    ) : (
+   
+      <div className="container">
           <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <h1>Focus OS</h1>
             <button 
@@ -551,20 +554,25 @@ return (
     </button>
   </div>
 )}
-        </div>
-      }
+               </div>
+      )
+    }
     />
 
     <Route
-      path="/archive"
-      element={
-        <ArchivePage 
-          tasks={tasks} 
-          restoreTask={restoreTask} 
-          deleteTask={deleteTask} 
-        />
-      }
-    />
+  path="/archive"
+  element={
+    session ? (
+      <ArchivePage
+        tasks={tasks}
+        restoreTask={restoreTask}
+        deleteTask={deleteTask}
+      />
+    ) : (
+      <Auth />
+    )
+  }
+/>
 
     <Route
     path="/confirmationpage"
