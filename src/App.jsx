@@ -462,11 +462,21 @@ return (
           <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <h1>Focus OS</h1>
             <button 
-              onClick={() => supabase.auth.signOut()} 
-              style={{ width: 'auto', background: '#dfe6e9', color: '#2d3436', fontSize: '0.8rem', padding: '5px 12px' }}
-            >
-              Sign Out
-            </button>
+  onClick={() => supabase.auth.signOut()} 
+  style={{ 
+    width: 'auto',
+    background: '#e74c3c',
+    color: 'white',
+    fontSize: '0.8rem',
+    padding: '6px 14px',
+    border: 'none',
+    borderRadius: '6px',
+    fontWeight: '600',
+    cursor: 'pointer'
+  }}
+>
+  Sign Out
+</button>
           </header>
 
           <div className="board">
